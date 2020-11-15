@@ -14,7 +14,7 @@ const responseGoogle = async (response) => {
   //    .then(code => {
   // Define credentials with the authorization code from the Google SDK
   console.log(response)
-  const credentials = Realm.Credentials.google(response.access_token)
+  const credentials = Realm.Credentials.google(response.accessToken)
   // Log the user in to your app
   const user = await app.logIn(credentials)
   //    })
