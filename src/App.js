@@ -5,24 +5,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import GoogleLogin, { GoogleLogout } from 'react-google-login';
 import { gapi } from 'gapi-script'
-const REALM_APP_ID = "application-0-htjdc"; // e.g. myapp-abcde
+const REALM_APP_ID = "webapp-knulu"; // from realm
 const app = new Realm.App({ id: REALM_APP_ID });
 
-
-const responseGoogle = async (response) => {
-  //  getGoogleAuthCode()
-  //    .then(code => {
-  // Define credentials with the authorization code from the Google SDK
-  console.log(response)
-  const credentials = Realm.Credentials.google(response.accessToken)
-  // Log the user in to your app
-  const user = await app.logIn(credentials)
-  //    })
-  //   .then(user => {
-  console.log(`Logged in with id: ${user.id}`);
-  //    });
-  console.log(response);
-}
 
 const logout = (response) => {
   console.log(response);
@@ -32,18 +17,18 @@ const logout = (response) => {
 function UserDetail({ user }) {
   return (
     <div>
-      <h1>Logged in with anonymous id: {user.id}</h1>
+      <h1>Logged in with id: {user.id}</h1>
     </div>
   );
 }
 //JswxMmn7L5q8KtbqyKjLfl26
-
+/*
 function getGoogleAuthCode() {
-  return new Promise((resolve, reject) => {
+  return new Promise((reject, resolve) => {
     gapi.auth2.authorize({
-      client_id: "871874346798-vvg44dttf84ev64d5fv7v52hgc82sil4.apps.googleusercontent.com",
+      client_id: "871874346798-vvg44dttf84ev64d5fv7v52hgc82sil4",
       // Scopes should match the metadata fields in the provider configuration
-      //scope: "<scopes>",
+      scope: "name",
       response_type: "code",
     }, ({ code, error }) => {
       if (error) {
@@ -52,6 +37,15 @@ function getGoogleAuthCode() {
       resolve(code)
     })
   })
+}
+*/
+
+function onSignIn(googleUser) {
+  var profile = googleUser.getBasicProfile();
+  console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+  console.log('Name: ' + profile.getName());
+  console.log('Image URL: ' + profile.getImageUrl());
+  console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
 }
 
 class App extends React.Component {
@@ -104,21 +98,33 @@ class App extends React.Component {
     await app.emailPasswordAuth.registerUser(this.state.email, this.state.password);
   };
 
-  callafunction = async () => {
-    const result = await this.state.user.functions.function0();
-    console.log(result)
+  googlelogin = async () => {
+    var auth2 = gapi.auth2.getAuthInstance();
+    var scope = {
+      scope: 'email'
+    }
+    console.log(auth2.currentUser.get().getAuthResponse(true))
+    auth2.grantOfflineAccess(scope).then(function (resp) {
+      var auth_code = resp.code;
+      console.log(auth_code)
+      //    const credentials = Realm.Credentials.google(auth2.currentUser.get().getAuthResponse(true).access_token)
+      const credentials = Realm.Credentials.google(auth_code)
+      // Log the user in to your app
+      var user = app.logIn(credentials)
+      console.log(`Logged in with id: ${user.id}`);
+
+    });
   }
-  afterGooglelogin = async () => {
-    getGoogleAuthCode()
-      .then(code => {
-        // Define credentials with the authorization code from the Google SDK
-        const credentials = Realm.Credentials.google(code)
-        // Log the user in to your app
-        return app.logIn(credentials)
-      })
-      .then(user => {
-        console.log(`Logged in with id: ${user.id}`);
-      });
+
+  signOut() {
+    var auth2 = gapi.auth2.getAuthInstance();
+    auth2.signOut().then(function () {
+      console.log('User signed out.');
+    });
+  }
+  callafunction = async () => {
+    const result = await this.state.user.functions.testfunction();
+    console.log(result)
   }
   handleChangeEmail(e) {
     console.log(e.target.value)
@@ -139,36 +145,37 @@ class App extends React.Component {
       <div className="App">
         <div>
           <UserDetail user={this.state.user} />
-          <button onClick={this.Login}>Log In</button>
-
-            Email:
+          <button onClick={this.Login}>Log In anonymous</button> please dont press too many times, for testing purpose only before you have an account
+        </div>
+        <div>
+          Email:
             <input type="text" value={this.state.email} onChange={this.handleChangeEmail} />
 
             Password:
             <input type="text" value={this.state.password} onChange={this.handleChangePassword} />
-          <button onClick={this.LoginEmail}>Log In</button>
-          <button onClick={this.logout}>Log Out</button>;
+          <button onClick={this.LoginEmail}>Log In with email</button>
+          <button onClick={this.logout}>Log Out</button>
           <button onClick={this.registeruser}>Register</button>
-          <button onClick={this.callafunction}>callafunction</button>
+
         </div>
+        <div>
+          <button onClick={this.callafunction}>callafunction</button>
+          see result in console
 
-        <GoogleLogin
-          clientId="871874346798-vvg44dttf84ev64d5fv7v52hgc82sil4.apps.googleusercontent.com"
-          buttonText="Login"
-          onSuccess={responseGoogle}
-          onFailure={responseGoogle}
-          cookiePolicy={'single_host_origin'}
-          isSignedIn={true}
-        />
 
-        <GoogleLogout
-          clientId="871874346798-vvg44dttf84ev64d5fv7v52hgc82sil4.apps.googleusercontent.com"
-          buttonText="Logout"
-          onLogoutSuccess={logout}
-        >
-        </GoogleLogout>
-        <button onClick={this.afterGooglelogin}>afterGooglelogin</button>
-      </div>
+        </div>
+        Google is not yet working
+        <div className="g-signin2" data-onsuccess="onSignIn"></div>
+
+        <button onClick={this.googlelogin} > use google login</button >
+        <button onClick={this.signOut}>Sign out google</button>
+        <div>
+          <p>After pressing "log in anonymous" or "login with email", id should be shown. </p>
+          <p>After login you can call the function and see a demo result in console</p>
+          <p>call function before login return error</p>
+        </div>
+      </div >
+
     );
   }
 }
